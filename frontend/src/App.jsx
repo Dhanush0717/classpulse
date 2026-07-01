@@ -1446,9 +1446,25 @@ function TeacherSessionView() {
                         <FileText size={18} style={{ color: 'var(--primary)' }} />
                         <span style={{ fontSize: '14px', fontWeight: '500' }}>{note.title}</span>
                       </div>
-                      <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
-                        Open File
-                      </a>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <a 
+                          href={note.fileUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn btn-secondary" 
+                          style={{ padding: '4px 10px', fontSize: '12px' }}
+                        >
+                          View
+                        </a>
+                        <a 
+                          href={note.fileUrl.includes('res.cloudinary.com') ? note.fileUrl.replace('/upload/', '/upload/fl_attachment/') : note.fileUrl} 
+                          download
+                          className="btn btn-primary" 
+                          style={{ padding: '4px 10px', fontSize: '12px' }}
+                        >
+                          Download
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2119,9 +2135,25 @@ function StudentSession({ student, onLogout }) {
                       <FileText size={14} style={{ color: 'var(--primary)' }} />
                       {note.title}
                     </span>
-                    <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}>
-                      Open File
-                    </a>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <a 
+                        href={note.fileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="btn btn-secondary" 
+                        style={{ padding: '4px 10px', fontSize: '11px' }}
+                      >
+                        View
+                      </a>
+                      <a 
+                        href={note.fileUrl.includes('res.cloudinary.com') ? note.fileUrl.replace('/upload/', '/upload/fl_attachment/') : note.fileUrl} 
+                        download
+                        className="btn btn-primary" 
+                        style={{ padding: '4px 10px', fontSize: '11px' }}
+                      >
+                        Download
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>

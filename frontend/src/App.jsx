@@ -1457,7 +1457,7 @@ function TeacherSessionView() {
                           View
                         </a>
                         <a 
-                          href={note.fileUrl.includes('res.cloudinary.com') ? note.fileUrl.replace('/upload/', '/upload/fl_attachment/') : note.fileUrl} 
+                          href={note.fileUrl && note.fileUrl.includes('res.cloudinary.com') ? note.fileUrl.replace('/upload/', '/upload/fl_attachment/') : (note.fileUrl || '')} 
                           download
                           className="btn btn-primary" 
                           style={{ padding: '4px 10px', fontSize: '12px' }}
@@ -2146,7 +2146,7 @@ function StudentSession({ student, onLogout }) {
                         View
                       </a>
                       <a 
-                        href={note.fileUrl.includes('res.cloudinary.com') ? note.fileUrl.replace('/upload/', '/upload/fl_attachment/') : note.fileUrl} 
+                        href={note.fileUrl && note.fileUrl.includes('res.cloudinary.com') ? note.fileUrl.replace('/upload/', '/upload/fl_attachment/') : (note.fileUrl || '')} 
                         download
                         className="btn btn-primary" 
                         style={{ padding: '4px 10px', fontSize: '11px' }}

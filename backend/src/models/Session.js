@@ -40,7 +40,8 @@ const sessionSchema = new mongoose.Schema(
 
     location: {
       latitude: Number,
-      longitude: Number
+      longitude: Number,
+      accuracy: Number
     },
 
     attendanceRadius: {

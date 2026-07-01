@@ -419,6 +419,8 @@ function TeacherDashboard({ teacher }) {
   const [activeDashboardTab, setActiveDashboardTab] = useState('lectures'); // 'lectures', 'shortages'
   const [shortageRoster, setShortageRoster] = useState([]);
   const [loadingShortages, setLoadingShortages] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
+  const [accuracy, setAccuracy] = useState(0);
 
   const navigate = useNavigate();
 
@@ -486,6 +488,7 @@ function TeacherDashboard({ teacher }) {
       (pos) => {
         setLatitude(pos.coords.latitude.toFixed(6));
         setLongitude(pos.coords.longitude.toFixed(6));
+        setAccuracy(pos.coords.accuracy || 0);
         setGettingLocation(false);
       },
       (err) => {
@@ -508,7 +511,9 @@ function TeacherDashboard({ teacher }) {
       const res = await axios.post('/api/session/create', {
         subject: subject.trim(),
         latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude)
+        longitude: parseFloat(longitude),
+        accuracy: parseFloat(accuracy) || 0,
+        attendanceRadius: demoMode ? 9999999 : 50
       });
       setSuccessMsg(`Session for "${res.data.subject}" created successfully!`);
       setSubject('');
@@ -670,6 +675,19 @@ function TeacherDashboard({ teacher }) {
                   <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
                     Coordinates mark the center of the geofenced attendance zone (50m radius).
                   </p>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
+                  <input 
+                    type="checkbox" 
+                    id="demoMode" 
+                    checked={demoMode} 
+                    onChange={(e) => setDemoMode(e.target.checked)} 
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="demoMode" style={{ fontSize: '13px', userSelect: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                    <strong>Enable Demo Mode</strong> (Bypass geofence validation for presentation)
+                  </label>
                 </div>
 
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
@@ -1636,6 +1654,7 @@ function StudentSession({ student, onLogout }) {
   const [longitude, setLongitude] = useState(null);
   const [gpsError, setGpsError] = useState('');
   const [retrievingGps, setRetrievingGps] = useState(true);
+  const [accuracy, setAccuracy] = useState(0);
 
   // States
   const [submittingAttendance, setSubmittingAttendance] = useState(false);
@@ -1683,6 +1702,7 @@ function StudentSession({ student, onLogout }) {
       (pos) => {
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
+        setAccuracy(pos.coords.accuracy || 0);
         setRetrievingGps(false);
       },
       (err) => {
@@ -1759,7 +1779,8 @@ function StudentSession({ student, onLogout }) {
       const res = await axios.post('/api/attendance/mark', {
         otp: otp.trim(),
         latitude,
-        longitude
+        longitude,
+        accuracy
       });
       setAttendanceSuccess(res.data.message || 'Attendance marked successfully!');
       setAttendanceMarked(true);

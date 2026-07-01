@@ -4,7 +4,7 @@ const generateOTP = require("../utils/generateOTP");
 
 const createSession = async (req, res) => {
   try {
-    const { subject, latitude, longitude } = req.body;
+    const { subject, latitude, longitude, accuracy, attendanceRadius } = req.body;
     if (
       !subject ||
       !Number.isFinite(Number(latitude)) ||
@@ -22,8 +22,10 @@ const createSession = async (req, res) => {
       otp: generateOTP(),
       location: {
         latitude: Number(latitude),
-        longitude: Number(longitude)
+        longitude: Number(longitude),
+        accuracy: accuracy ? Number(accuracy) : 0
       },
+      attendanceRadius: attendanceRadius ? Number(attendanceRadius) : 50,
       otpExpiresAt: new Date(Date.now() + 30 * 60 * 1000)
     });
 

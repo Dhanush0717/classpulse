@@ -484,18 +484,52 @@ function TeacherDashboard({ teacher }) {
       setGettingLocation(false);
       return;
     }
-    navigator.geolocation.getCurrentPosition(
+
+    let watchId = null;
+    let bestPos = null;
+
+    const clearWatchSafe = () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      clearWatchSafe();
+      if (bestPos) {
+        setLatitude(bestPos.coords.latitude.toFixed(6));
+        setLongitude(bestPos.coords.longitude.toFixed(6));
+        setAccuracy(bestPos.coords.accuracy || 0);
+      } else {
+        setCreationError('Location request timed out. Try again.');
+      }
+      setGettingLocation(false);
+    }, 5000);
+
+    watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setLatitude(pos.coords.latitude.toFixed(6));
-        setLongitude(pos.coords.longitude.toFixed(6));
-        setAccuracy(pos.coords.accuracy || 0);
-        setGettingLocation(false);
+        if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
+          bestPos = pos;
+          if (pos.coords.accuracy < 15) {
+            clearTimeout(timeoutId);
+            clearWatchSafe();
+            setLatitude(pos.coords.latitude.toFixed(6));
+            setLongitude(pos.coords.longitude.toFixed(6));
+            setAccuracy(pos.coords.accuracy || 0);
+            setGettingLocation(false);
+          }
+        }
       },
       (err) => {
-        setCreationError('Could not retrieve location. Enable GPS permissions.');
-        setGettingLocation(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          clearTimeout(timeoutId);
+          clearWatchSafe();
+          setCreationError('Location access blocked. Enable GPS permissions.');
+          setGettingLocation(false);
+        }
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 4500, maximumAge: 0 }
     );
   };
 
@@ -1714,18 +1748,52 @@ function StudentSession({ student, onLogout }) {
       setRetrievingGps(false);
       return;
     }
-    navigator.geolocation.getCurrentPosition(
+
+    let watchId = null;
+    let bestPos = null;
+
+    const clearWatchSafe = () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      clearWatchSafe();
+      if (bestPos) {
+        setLatitude(bestPos.coords.latitude);
+        setLongitude(bestPos.coords.longitude);
+        setAccuracy(bestPos.coords.accuracy || 0);
+      } else {
+        setGpsError('Location request timed out. Please refresh GPS.');
+      }
+      setRetrievingGps(false);
+    }, 5000);
+
+    watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setLatitude(pos.coords.latitude);
-        setLongitude(pos.coords.longitude);
-        setAccuracy(pos.coords.accuracy || 0);
-        setRetrievingGps(false);
+        if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
+          bestPos = pos;
+          if (pos.coords.accuracy < 15) {
+            clearTimeout(timeoutId);
+            clearWatchSafe();
+            setLatitude(pos.coords.latitude);
+            setLongitude(pos.coords.longitude);
+            setAccuracy(pos.coords.accuracy || 0);
+            setRetrievingGps(false);
+          }
+        }
       },
       (err) => {
-        setGpsError('Location access blocked. Please enable GPS permissions to mark attendance.');
-        setRetrievingGps(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          clearTimeout(timeoutId);
+          clearWatchSafe();
+          setGpsError('Location access blocked. Please enable GPS permissions to mark attendance.');
+          setRetrievingGps(false);
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 4500, maximumAge: 0 }
     );
   };
 

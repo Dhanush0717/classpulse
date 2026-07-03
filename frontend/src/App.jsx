@@ -419,7 +419,6 @@ function TeacherDashboard({ teacher }) {
   const [activeDashboardTab, setActiveDashboardTab] = useState('lectures'); // 'lectures', 'shortages'
   const [shortageRoster, setShortageRoster] = useState([]);
   const [loadingShortages, setLoadingShortages] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
   const [accuracy, setAccuracy] = useState(0);
 
   const navigate = useNavigate();
@@ -546,8 +545,7 @@ function TeacherDashboard({ teacher }) {
         subject: subject.trim(),
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
-        accuracy: parseFloat(accuracy) || 0,
-        attendanceRadius: demoMode ? 9999999 : 50
+        accuracy: parseFloat(accuracy) || 0
       });
       setSuccessMsg(`Session for "${res.data.subject}" created successfully!`);
       setSubject('');
@@ -711,18 +709,7 @@ function TeacherDashboard({ teacher }) {
                   </p>
                 </div>
 
-                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '15px', marginBottom: '15px' }}>
-                  <input 
-                    type="checkbox" 
-                    id="demoMode" 
-                    checked={demoMode} 
-                    onChange={(e) => setDemoMode(e.target.checked)} 
-                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                  />
-                  <label htmlFor="demoMode" style={{ fontSize: '13px', userSelect: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    <strong>Enable Demo Mode</strong> (Bypass geofence validation for presentation)
-                  </label>
-                </div>
+
 
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
                   Start Lecture Session

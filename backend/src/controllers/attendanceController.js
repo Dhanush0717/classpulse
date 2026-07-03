@@ -70,12 +70,6 @@ const markAttendance = async (req, res) => {
     const studentAccuracy = Number(accuracy) || 0;
     const allowedRadius = session.attendanceRadius + teacherAccuracy + studentAccuracy;
 
-    const isDemoMode = session.attendanceRadius >= 999999;
-    if (isDemoMode) {
-      if (distance > 50) {
-        // Generate a simulated close distance (e.g., between 2.1m and 6.8m)
-        distance = Number((Math.random() * 4.7 + 2.1).toFixed(1));
-      }
     } else if (distance > allowedRadius) {
       return res.status(400).json({
         message: `Outside attendance area. Measured distance: ${Math.round(distance)}m. Allowed limit (including accuracy margin of error): ${Math.round(allowedRadius)}m.`,

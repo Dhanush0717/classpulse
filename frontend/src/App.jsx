@@ -902,6 +902,9 @@ function TeacherSessionView() {
   const [noteTitle, setNoteTitle] = useState('');
   const [noteFile, setNoteFile] = useState(null);
   const [isNotesUploading, setIsNotesUploading] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualUsn, setManualUsn] = useState('');
+  const [showManualForm, setShowManualForm] = useState(false);
 
   const [activeTab, setActiveTab] = useState('attendance'); // 'attendance', 'feedback', 'notes-doubts'
   
@@ -1044,6 +1047,35 @@ function TeacherSessionView() {
       await axios.patch(`/api/doubt/${doubtId}/resolve`);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to resolve doubt.');
+    }
+  };
+
+  const handleMarkManual = async (studentId, customName = '', customUsn = '') => {
+    try {
+      const payload = { sessionId };
+      if (studentId) {
+        payload.studentId = studentId;
+      } else {
+        if (!customName.trim() || !customUsn.trim()) {
+          alert('Name and USN are required for manual entry.');
+          return;
+        }
+        payload.name = customName.trim();
+        payload.usn = customUsn.trim();
+      }
+      
+      const res = await axios.post('/api/attendance/manual', payload);
+      alert(res.data.message || 'Attendance marked successfully!');
+      
+      if (!studentId) {
+        setManualName('');
+        setManualUsn('');
+        setShowManualForm(false);
+      }
+      
+      fetchSessionDetails(); 
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to mark attendance manually.');
     }
   };
 
@@ -1208,9 +1240,26 @@ function TeacherSessionView() {
         <button 
           onClick={() => setActiveTab('notes-doubts')} 
           className={`btn ${activeTab === 'notes-doubts' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ padding: '10px 20px', borderRadius: '8px 8px 0 0', borderBottom: 'none' }}
+          style={{ padding: '10px 20px', borderRadius: '8px 8px 0 0', borderBottom: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
           <HelpCircle size={16} /> Notes & Doubts Board
+          {doubts.filter(d => !d.isResolved).length > 0 && (
+            <span style={{ 
+              backgroundColor: '#ef4444', 
+              color: '#fff', 
+              fontSize: '11px', 
+              fontWeight: 'bold', 
+              borderRadius: '50%', 
+              width: '18px', 
+              height: '18px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              lineHeight: '1'
+            }}>
+              {doubts.filter(d => !d.isResolved).length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1224,6 +1273,58 @@ function TeacherSessionView() {
                 Present Rate: <strong style={{ color: 'var(--success)' }}>{totalJoined > 0 ? Math.round((totalPresent / totalJoined) * 100) : 0}%</strong>
               </span>
             </div>
+          </div>
+
+          {/* Manual Entry Section */}
+          <div style={{ marginBottom: '20px', padding: '12px', border: '1px dashed var(--border-light)', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Did a student forget their phone or experience a network issue?
+              </span>
+              <button 
+                onClick={() => setShowManualForm(!showManualForm)}
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '12px' }}
+              >
+                {showManualForm ? 'Hide Manual Form' : 'Mark Attendance Manually'}
+              </button>
+            </div>
+            
+            {showManualForm && (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleMarkManual(null, manualName, manualUsn);
+                }}
+                style={{ display: 'flex', gap: '10px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}
+              >
+                <input 
+                  type="text" 
+                  placeholder="Student Name"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  className="input-field"
+                  style={{ flex: 1, minWidth: '150px', padding: '8px', fontSize: '13px', margin: 0 }}
+                  required
+                />
+                <input 
+                  type="text" 
+                  placeholder="USN"
+                  value={manualUsn}
+                  onChange={(e) => setManualUsn(e.target.value.toUpperCase())}
+                  className="input-field"
+                  style={{ flex: 1, minWidth: '120px', padding: '8px', fontSize: '13px', margin: 0 }}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  style={{ padding: '8px 16px', fontSize: '13px' }}
+                >
+                  Mark Present
+                </button>
+              </form>
+            )}
           </div>
 
           <div className="grid-cols-2" style={{ alignItems: 'start' }}>
@@ -1273,6 +1374,7 @@ function TeacherSessionView() {
                         <th>Student Name</th>
                         <th>USN</th>
                         <th>Joined At</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1281,6 +1383,23 @@ function TeacherSessionView() {
                           <td>{stud.name}</td>
                           <td style={{ fontWeight: '500' }}>{stud.usn}</td>
                           <td>{new Date(stud.joinedAt).toLocaleTimeString()}</td>
+                          <td>
+                            <button
+                              onClick={() => handleMarkManual(stud._id)}
+                              className="btn"
+                              style={{ 
+                                padding: '4px 8px', 
+                                fontSize: '11px', 
+                                backgroundColor: 'var(--success)', 
+                                color: '#fff', 
+                                border: 'none', 
+                                borderRadius: '4px',
+                                cursor: 'pointer' 
+                              }}
+                            >
+                              Mark Present
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1845,13 +1964,20 @@ function StudentSession({ student, onLogout }) {
       return;
     }
 
+    let deviceId = localStorage.getItem('classpulse_device_id');
+    if (!deviceId) {
+      deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('classpulse_device_id', deviceId);
+    }
+
     setSubmittingAttendance(true);
     try {
       const res = await axios.post('/api/attendance/mark', {
         otp: otp.trim(),
         latitude,
         longitude,
-        accuracy
+        accuracy,
+        deviceId
       });
       setAttendanceSuccess(res.data.message || 'Attendance marked successfully!');
       setAttendanceMarked(true);

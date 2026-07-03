@@ -6,7 +6,7 @@ const haversineDistance = require("../utils/haversine");
 
 const markAttendance = async (req, res) => {
   try {
-    const { otp, latitude, longitude, accuracy } = req.body;
+    const { otp, latitude, longitude, accuracy, deviceId } = req.body;
 
     const session = await Session.findOne({
       _id: req.student.sessionId,
@@ -32,6 +32,18 @@ const markAttendance = async (req, res) => {
     });
     if (existingAttendance) {
       return res.status(409).json({ message: "Attendance already marked" });
+    }
+
+    if (deviceId && deviceId !== "unknown") {
+      const deviceAttendance = await Attendance.findOne({
+        sessionId: session._id,
+        deviceId: deviceId
+      });
+      if (deviceAttendance) {
+        return res.status(400).json({
+          message: "Attendance has already been marked from this device for this session"
+        });
+      }
     }
 
     if (new Date() > session.otpExpiresAt) {
@@ -81,7 +93,8 @@ const markAttendance = async (req, res) => {
       sessionId: session._id,
       studentId: student._id,
       distance,
-      status: "present"
+      status: "present",
+      deviceId: deviceId || "unknown"
     });
 
     // Populate student info for frontend list
@@ -355,10 +368,105 @@ const getTeacherShortageRoster = async (req, res) => {
   }
 };
 
+const markManualAttendance = async (req, res) => {
+  try {
+    const { name, usn, sessionId, studentId } = req.body;
+    
+    let student;
+    if (studentId) {
+      student = await Student.findById(studentId);
+    } else {
+      if (!name?.trim() || !usn?.trim() || !sessionId) {
+        return res.status(400).json({ message: "Name, USN and sessionId are required" });
+      }
+      const normalizedUsn = usn.trim().toUpperCase();
+      const normalizedName = name.trim();
+      
+      // Find or create student for this session
+      student = await Student.findOne({ sessionId, usn: normalizedUsn });
+      if (!student) {
+        student = await Student.create({
+          name: normalizedName,
+          usn: normalizedUsn,
+          sessionId
+        });
+        
+        // Notify socket of join
+        const io = req.app.get("io");
+        if (io) {
+          const allInstances = await Student.find({ usn: student.usn }).select("_id");
+          const ids = allInstances.map(i => i._id);
+          const presentCount = await Attendance.countDocuments({ studentId: { $in: ids } });
+          const joinedCount = allInstances.length;
+          const rate = joinedCount > 0 ? Math.round((presentCount / joinedCount) * 100) : 100;
+          
+          io.to(sessionId.toString()).emit("studentJoined", {
+            _id: student._id,
+            name: student.name,
+            usn: student.usn,
+            joinedAt: student.joinedAt,
+            cumulativeRate: rate,
+            isShortage: rate < 75
+          });
+        }
+      }
+    }
+    
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    
+    // Check if attendance already marked
+    const targetSessionId = student.sessionId || sessionId;
+    const existing = await Attendance.findOne({ sessionId: targetSessionId, studentId: student._id });
+    if (existing) {
+      return res.status(409).json({ message: "Attendance already marked for this student" });
+    }
+    
+    const attendance = await Attendance.create({
+      sessionId: targetSessionId,
+      studentId: student._id,
+      distance: 0,
+      status: "present",
+      deviceId: "manual_teacher"
+    });
+    
+    // Populate and emit to socket.io
+    const populated = await Attendance.findById(attendance._id)
+      .populate("studentId", "name usn")
+      .select("studentId status distance markedAt");
+      
+    const allInstances = await Student.find({ usn: student.usn }).select("_id");
+    const ids = allInstances.map(i => i._id);
+    const presentCount = await Attendance.countDocuments({ studentId: { $in: ids } });
+    const joinedCount = allInstances.length;
+    const rate = joinedCount > 0 ? Math.round((presentCount / joinedCount) * 100) : 100;
+    
+    const populatedObj = populated.toObject();
+    if (populatedObj.studentId) {
+      populatedObj.studentId.cumulativeRate = rate;
+      populatedObj.studentId.isShortage = rate < 75;
+    }
+    
+    const io = req.app.get("io");
+    if (io) {
+      io.to(targetSessionId.toString()).emit("attendanceMarked", populatedObj);
+    }
+    
+    res.status(201).json({
+      message: "Attendance marked manually",
+      attendance: populatedObj
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   markAttendance,
   getDashboard,
   getHistory,
   getSessionAttendance,
-  getTeacherShortageRoster
+  getTeacherShortageRoster,
+  markManualAttendance
 };

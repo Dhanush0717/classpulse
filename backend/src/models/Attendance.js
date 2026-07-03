@@ -27,6 +27,11 @@ const attendanceSchema = new mongoose.Schema(
     markedAt: {
         type: Date,
         default: Date.now
+    },
+
+    deviceId: {
+        type: String,
+        default: "unknown"
     }
 }, { timestamps: true });
 

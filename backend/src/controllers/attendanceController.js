@@ -70,7 +70,7 @@ const markAttendance = async (req, res) => {
     const studentAccuracy = Number(accuracy) || 0;
     const allowedRadius = session.attendanceRadius + teacherAccuracy + studentAccuracy;
 
-    } else if (distance > allowedRadius) {
+    if (distance > allowedRadius) {
       return res.status(400).json({
         message: `Outside attendance area. Measured distance: ${Math.round(distance)}m. Allowed limit (including accuracy margin of error): ${Math.round(allowedRadius)}m.`,
         distance
